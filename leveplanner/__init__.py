@@ -1,0 +1,1 @@
+"""FFXIV Tradecraft Leve Planner."""
