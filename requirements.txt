@@ -1,0 +1,3 @@
+# Runtime: Python 3.10+ standard library only (including tkinter).
+# Automated tests: python -m unittest discover -s tests -v
+# No third-party packages required.

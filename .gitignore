@@ -1,0 +1,13 @@
+cache/
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+!.env.example
+build/
+dist/
+*.spec
+leve_plans*.csv
+test-results.txt
+example-live-result.json
