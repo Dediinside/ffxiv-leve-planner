@@ -12,7 +12,11 @@ class GuiSmokeTests(unittest.TestCase):
         except tk.TclError as exc:
             self.skipTest(f"Tk display unavailable: {exc}")
         root.withdraw()
-        self.addCleanup(root.destroy)
+        def close():
+            for timer in root.tk.call('after', 'info'):
+                root.after_cancel(timer)
+            root.destroy()
+        self.addCleanup(close)
         app = Application(root, demo=True)
         app.calculate()
         deadline = time.monotonic() + 20
