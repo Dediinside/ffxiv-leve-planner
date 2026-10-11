@@ -156,6 +156,7 @@ class Application:
         self.refresh_button = ttk.Button(buttons, text="Обновить игровые данные", command=self.update_catalog)
         self.refresh_button.pack(side="left", padx=8)
         ttk.Button(buttons, text="Экспорт CSV", command=self.export).pack(side="left")
+        ttk.Button(buttons, text="Маршрут прокачки…", command=self.open_route).pack(side="left", padx=8)
         filters = ttk.Frame(wrap)
         filters.pack(fill="x", pady=(12, 0))
         self.priority = tk.StringVar(value="Максимальная прибыль")
@@ -211,6 +212,14 @@ class Application:
         pane.add(top, weight=3)
         pane.add(bottom, weight=2)
         root.after(100, self.poll)
+
+    def open_route(self):
+        from .route_window import RouteWindow
+        if getattr(self, 'route_window', None) is not None and not self.route_window.closed:
+            self.route_window.root.lift()
+            self.route_window.root.focus_set()
+        else:
+            self.route_window = RouteWindow(self)
 
     def field(self, frame, label, col, variable, values=None, width=12):
         ttk.Label(frame, text=label).grid(row=0, column=col, sticky="w", padx=(0, 12))

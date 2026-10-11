@@ -69,8 +69,10 @@ def reward_xp(leve, player_level, hq):
     return min(exp, 1000) if player_level >= boundary else exp
 
 
-def simulate(leve, settings, xp_table, cap, hq, turns_per_accept):
-    target = next_target(settings.level, cap)
+def simulate(leve, settings, xp_table, cap, hq, turns_per_accept, target=None):
+    target = next_target(settings.level, cap) if target is None else target
+    if not settings.level < target <= cap:
+        raise ValueError("Цель должна быть выше текущего уровня и не выше максимального")
     if not 1 <= turns_per_accept <= leve["max_turnins"]:
         raise ValueError("Некорректное число сдач на одно принятие")
     level, xp = settings.level, settings.current_xp
