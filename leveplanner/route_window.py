@@ -125,6 +125,7 @@ class RouteWindow:
         self.cancel_button = ttk.Button(actions, text='Отмена', command=self.cancel, state='disabled')
         self.cancel_button.pack(side='left', padx=8)
         ttk.Button(actions, text='Экспорт маршрута CSV', command=self.export).pack(side='left', padx=8)
+        ttk.Button(actions, text='Список крафта…', command=self.open_craft_list).pack(side='left', padx=8)
         ttk.Checkbutton(actions, text='Гарантированный HQ-крафт', variable=self.craft_hq).pack(side='left', padx=8)
         ttk.Checkbutton(actions, text='Свежие цены', variable=self.force).pack(side='left', padx=8)
         self.status = tk.StringVar(self.root, 'Выберите цель и нажмите «Рассчитать маршрут».')
@@ -265,6 +266,13 @@ class RouteWindow:
         selected = self.table.selection()
         if selected and self.result is not None:
             self.set_detail(step_details(self.result.steps[int(selected[0])], self.data))
+
+    def open_craft_list(self):
+        if self.result is None or not self.result.steps:
+            messagebox.showinfo('Список крафта', 'Сначала рассчитайте маршрут с хотя бы одним этапом.', parent=self.root)
+            return
+        from .craft_export_window import CraftExportWindow
+        self.craft_list_window = CraftExportWindow(self)
 
     def export(self):
         if self.result is None:

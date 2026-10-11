@@ -5,7 +5,7 @@ import io
 import json
 from pathlib import Path
 import time
-from collections import Counter
+from collections import Counter, defaultdict
 
 from .net import ApiError, atomic_json, download
 
@@ -39,11 +39,11 @@ def normalize(sheets, metadata):
                       "location": places.get(int(l["PlaceNameIssued"]), {}).get("Name", ""),
                       "description": l["Description"]})
     target_items = {item for l in leves for item in l["items"]}
-    recipes, needed = [], set(target_items)
+    by_item = defaultdict(list)
     for r in sheets["Recipe"]:
         item = int(r["ItemResult"])
         craft_type = int(r["CraftType"])
-        if item not in target_items or not 0 <= craft_type < 8:
+        if not item or not 0 <= craft_type < 8:
             continue
         if int(r["Quest"]) or int(r["RequiredQuality"]) or r["IsExpert"] == "True":
             continue
@@ -52,19 +52,30 @@ def normalize(sheets, metadata):
             ing, qty = int(r[f"Ingredient[{i}]"]), int(r[f"AmountIngredient[{i}]"])
             if ing > 0 and qty > 0:
                 ingredients[ing] += qty
-        needed.update(ingredients)
-        recipes.append({"id": int(r["#"]), "item": item, "job": JOBS[craft_type],
+        by_item[item].append({"id": int(r["#"]), "item": item, "job": JOBS[craft_type],
                         "level": int(recipe_levels[int(r["RecipeLevelTable"])]["ClassJobLevel"]),
                         "yield": int(r["AmountResult"]), "ingredients": dict(ingredients),
                         "hq": r["CanHq"] == "True", "book": int(r["SecretRecipeBook"]),
                         "specialist": r["IsSpecializationRequired"] == "True"})
+    recipes, needed, visited = [], set(target_items), set()
+    pending = list(sorted(target_items))
+    while pending:
+        item = pending.pop()
+        if item in visited:
+            continue
+        visited.add(item)
+        for recipe in by_item[item]:
+            recipes.append(recipe)
+            needed.update(recipe['ingredients'])
+            pending.extend(i for i in recipe['ingredients'] if i not in visited)
+    recipes.sort(key=lambda r: r['id'])
     items = {i: {"name": item_rows[i]["Name"], "hq": item_rows[i]["CanBeHq"] == "True",
                  "marketable": int(item_rows[i]["ItemSearchCategory"]) > 0 and item_rows[i]["IsUntradable"] == "False"}
              for i in needed}
     xp = {int(r["#"]): int(r["ExpToNext"]) for r in sheets["ParamGrow"] if int(r["ExpToNext"]) > 0}
     cap = max(l["level"] for l in leves)
     cap = ((cap // 10) + 1) * 10
-    result = {"schema": 1, "metadata": metadata, "level_cap": cap, "leves": leves,
+    result = {"schema": 1, "metadata": {**metadata, 'recipe_scope': 'leve-ingredient-closure-v1'}, "level_cap": cap, "leves": leves,
               "recipes": recipes, "items": items, "xp": xp}
     validate(result)
     return result
@@ -85,6 +96,12 @@ def validate(data):
             raise ValueError("Отсутствует предмет задания")
     if any(int(data["xp"].get(str(i), data["xp"].get(i, 0))) <= 0 for i in range(1, data["level_cap"])):
         raise ValueError("Неполная таблица опыта")
+    item_ids = {int(i) for i in data['items']}
+    for r in data['recipes']:
+        if r['yield'] <= 0 or r['job'] not in JOBS or r['item'] not in item_ids:
+            raise ValueError('Некорректный рецепт')
+        if any(int(i) not in item_ids or qty <= 0 for i, qty in r['ingredients'].items()):
+            raise ValueError('Неполные ингредиенты рецепта')
 
 
 def load(path):

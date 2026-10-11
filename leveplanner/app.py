@@ -23,6 +23,8 @@ def get_catalog(progress=lambda s: None, force=False):
     data = None
     try:
         data = load(cache_path)
+        if data['metadata'].get('recipe_scope') != 'leve-ingredient-closure-v1':
+            data = load(ROOT / 'data' / 'catalog.json')
     except (OSError, ValueError, KeyError, TypeError):
         data = load(ROOT / "data" / "catalog.json")
     warning = ""
