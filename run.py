@@ -2,10 +2,12 @@
 import argparse
 import json
 from pathlib import Path
+from leveplanner import __version__
 
 
 def main():
     parser = argparse.ArgumentParser(description="FFXIV Tradecraft Leve Planner")
+    parser.add_argument('--version', action='version', version='FFXIV Tradecraft Leve Planner ' + __version__)
     parser.add_argument("--demo", action="store_true", help="Искусственные цены, без сети")
     parser.add_argument("--refresh", action="store_true", help="Обновить каталог и выйти")
     parser.add_argument("--cli", action="store_true", help="Расчёт в консоли без окна")
@@ -54,8 +56,13 @@ def main():
                  "balance": p.balance, "feasible": p.feasible, "problems": p.problems} for p in plans[:10]]
         print(json.dumps({"warnings": warnings, "plans": rows}, ensure_ascii=False, indent=2))
     else:
-        from leveplanner.app import launch
-        launch(args.demo)
+        import tkinter as tk
+        from leveplanner.app import Application
+        from update_checker import UpdateBar
+        window = tk.Tk()
+        app = Application(window, demo=args.demo)
+        app.updates = UpdateBar(window, 'Dediinside/ffxiv-leve-planner', __version__, demo=args.demo)
+        window.mainloop()
 
 
 if __name__ == "__main__":
